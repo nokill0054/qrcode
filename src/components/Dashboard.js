@@ -16,9 +16,6 @@ import {
 import QRCode from 'qrcode.react';
 import MuiAlert from '@material-ui/lab/Alert';
 
-// Ngrok'un verdiği yeni URL'i buraya yazın
-const BACKEND_URL = 'https://1234-abc-xyz.ngrok.io';
-
 const Dashboard = () => {
   const [urls, setUrls] = useState([]);
   const [newUrl, setNewUrl] = useState('');
@@ -30,11 +27,12 @@ const Dashboard = () => {
     if (userId) {
       fetchUrls();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   const fetchUrls = async () => {
     try {
-      const response = await fetch(`http://localhost:5001/api/qr/${userId}`);
+      const response = await fetch(`/api/qr/${userId}`);
       const data = await response.json();
       setUrls(data.urls || []);
     } catch (err) {
@@ -46,7 +44,7 @@ const Dashboard = () => {
   const addUrl = async () => {
     if (newUrl) {
       try {
-        const response = await fetch(`http://localhost:5001/api/qr/${userId}/urls`, {
+        const response = await fetch(`/api/qr/${userId}/urls`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -77,12 +75,12 @@ const Dashboard = () => {
             {userId && (
               <Box mb={4}>
                 <QRCode 
-                  value="https://www.akillimizan.com"  // Doğrudan akillimizan.com'a yönlendir
+                  value={`${window.location.origin}/api/redirect/${userId}`}
                   size={200}
                   level="H"
                 />
                 <Typography variant="body2" style={{ marginTop: 10 }}>
-                  Yönlendirilecek URL: {urls[0] || 'Henüz URL eklenmemiş'}
+                  Yönlendirilecek URL: {urls.length ? urls[urls.length - 1] : 'Henüz URL eklenmemiş'}
                 </Typography>
               </Box>
             )}

@@ -21,7 +21,7 @@ mongoose.connect('mongodb://127.0.0.1:27017/qr-manager', {
 })
 .then(() => {
   console.log('MongoDB bağlantısı başarılı');
-  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  app.listen(PORT, '127.0.0.1', () => console.log(`Server running on 127.0.0.1:${PORT}`));
 })
 .catch((err) => {
   console.error('MongoDB bağlantı hatası:', err);
@@ -129,7 +129,13 @@ app.get('/api/redirect/:userId', async (req, res) => {
     }
     
     console.log('Yönlendiriliyor:', redirectUrl);
-    return res.redirect(301, redirectUrl);
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'Surrogate-Control': 'no-store'
+    });
+    return res.redirect(302, redirectUrl);
   } catch (error) {
     console.error('Yönlendirme hatası:', error);
     return res.status(500).send('Bir hata oluştu');

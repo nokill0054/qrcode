@@ -26,7 +26,7 @@ const Login = () => {
       console.log('Form gönderiliyor...', { email, password });
       const endpoint = tab === 0 ? 'login' : 'register';
       
-      const response = await fetch(`http://localhost:5001/api/auth/${endpoint}`, {
+      const response = await fetch(`/api/auth/${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

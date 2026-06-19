@@ -2,10 +2,6 @@ import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import QRCode from 'qrcode.react';
 import { Button, Container, Paper, Typography, Box } from '@material-ui/core';
-import MuiAlert from '@material-ui/lab/Alert';
-
-// Ngrok'un verdiği yeni URL'i buraya yazın
-const BACKEND_URL = 'https://1234-abc-xyz.ngrok.io';
 
 const QRGenerator = () => {
   const [qrId, setQrId] = useState('');
@@ -22,7 +18,7 @@ const QRGenerator = () => {
       const uniqueId = generateRandomId();
       
       // Backend'e localhost üzerinden istek at
-      const response = await fetch('http://localhost:5001/api/qr', {
+      const response = await fetch('/api/qr', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -66,10 +62,18 @@ const QRGenerator = () => {
           </Button>
         </Box>
 
+        {error && (
+          <Box my={2}>
+            <Typography color="error">
+              {error}
+            </Typography>
+          </Box>
+        )}
+
         {qrId && (
           <Box my={4}>
             <QRCode 
-              value="https://www.akillimizan.com"
+              value={`${window.location.origin}/api/redirect/${qrId}`}
               size={256}
               level="H"
             />
