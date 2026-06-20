@@ -51,6 +51,8 @@ const QRSchema = new mongoose.Schema({
   ownerUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   slug: { type: String, unique: true, sparse: true },
   mode: { type: String, enum: ['redirect', 'profile'], default: 'redirect' },
+  qrColor: { type: String, default: '#000000' },
+  qrBgColor: { type: String, default: '#ffffff' },
 
   urls: [String],
 
@@ -113,6 +115,8 @@ const ensureUserQr = async (user) => {
       ownerUserId: user._id,
       slug,
       mode: 'redirect',
+      qrColor: '#000000',
+      qrBgColor: '#ffffff',
       urls: [],
       profile: {
         displayName: '',
@@ -213,6 +217,8 @@ app.get('/api/public/profile/:slug', async (req, res, next) => {
       slug: qr.slug || qr.userId,
       mode: qr.mode || 'redirect',
       profile: qr.profile || {},
+      qrColor: qr.qrColor || '#000000',
+      qrBgColor: qr.qrBgColor || '#ffffff',
       latestUrl: qr.urls && qr.urls.length > 0 ? qr.urls[qr.urls.length - 1] : null
     });
   } catch (error) {
@@ -321,7 +327,9 @@ app.get('/api/me/qr', auth, async (req, res, next) => {
       slug: qr.slug || qr.userId,
       mode: qr.mode || 'redirect',
       urls: qr.urls || [],
-      profile: qr.profile || {}
+      profile: qr.profile || {},
+      qrColor: qr.qrColor || '#000000',
+      qrBgColor: qr.qrBgColor || '#ffffff'
     });
   } catch (error) {
     next(error);
@@ -347,7 +355,9 @@ app.post('/api/me/qr/urls', auth, async (req, res, next) => {
       slug: qr.slug || qr.userId,
       mode: qr.mode || 'redirect',
       urls: qr.urls || [],
-      profile: qr.profile || {}
+      profile: qr.profile || {},
+      qrColor: qr.qrColor || '#000000',
+      qrBgColor: qr.qrBgColor || '#ffffff'
     });
   } catch (error) {
     next(error);
@@ -373,7 +383,44 @@ app.put('/api/me/qr/mode', auth, async (req, res, next) => {
       slug: qr.slug || qr.userId,
       mode: qr.mode || 'redirect',
       urls: qr.urls || [],
-      profile: qr.profile || {}
+      profile: qr.profile || {},
+      qrColor: qr.qrColor || '#000000',
+      qrBgColor: qr.qrBgColor || '#ffffff'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.put('/api/me/qr/style', auth, async (req, res, next) => {
+  try {
+    const { qrColor, qrBgColor } = req.body;
+
+    const isValidHexColor = (value) => /^#[0-9A-Fa-f]{6}$/.test(String(value || ''));
+
+    if (!isValidHexColor(qrColor)) {
+      return res.status(400).json({ error: 'QR rengi geçerli hex renk olmalı. Örn: #000000' });
+    }
+
+    if (!isValidHexColor(qrBgColor)) {
+      return res.status(400).json({ error: 'QR arka plan rengi geçerli hex renk olmalı. Örn: #ffffff' });
+    }
+
+    const qr = await ensureUserQr(req.user);
+
+    qr.qrColor = qrColor;
+    qr.qrBgColor = qrBgColor;
+    qr.updatedAt = new Date();
+    await qr.save();
+
+    res.json({
+      id: qr._id,
+      slug: qr.slug || qr.userId,
+      mode: qr.mode || 'redirect',
+      urls: qr.urls || [],
+      profile: qr.profile || {},
+      qrColor: qr.qrColor || '#000000',
+      qrBgColor: qr.qrBgColor || '#ffffff'
     });
   } catch (error) {
     next(error);
@@ -401,7 +448,9 @@ app.put('/api/me/qr/profile', auth, async (req, res, next) => {
       slug: qr.slug || qr.userId,
       mode: qr.mode || 'redirect',
       urls: qr.urls || [],
-      profile: qr.profile || {}
+      profile: qr.profile || {},
+      qrColor: qr.qrColor || '#000000',
+      qrBgColor: qr.qrBgColor || '#ffffff'
     });
   } catch (error) {
     next(error);
@@ -425,7 +474,9 @@ app.get('/api/auth/me', auth, async (req, res, next) => {
         slug: qr.slug || qr.userId,
         mode: qr.mode || 'redirect',
         urls: qr.urls || [],
-        profile: qr.profile || {}
+        profile: qr.profile || {},
+        qrColor: qr.qrColor || '#000000',
+        qrBgColor: qr.qrBgColor || '#ffffff'
       }
     });
   } catch (error) {

@@ -59,6 +59,8 @@ const Dashboard = () => {
       }
 
       setQr(data);
+      setQrColor(data.qrColor || '#000000');
+      setQrBgColor(data.qrBgColor || '#ffffff');
     } catch (err) {
       setError(err.message || 'QR bilgisi alınırken hata oluştu');
     } finally {
@@ -111,6 +113,32 @@ const Dashboard = () => {
       setSuccess('QR artık son linke yönlendirme modunda');
     } catch (err) {
       setError(err.message || 'Mod değiştirilirken hata oluştu');
+    }
+  };
+
+  const saveQrStyle = async () => {
+    try {
+      const response = await fetch('/api/me/qr/style', {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify({
+          qrColor,
+          qrBgColor
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'QR renkleri kaydedilemedi');
+      }
+
+      setQr(data);
+      setQrColor(data.qrColor || '#000000');
+      setQrBgColor(data.qrBgColor || '#ffffff');
+      setSuccess('QR renk ayarları kaydedildi');
+    } catch (err) {
+      setError(err.message || 'QR renkleri kaydedilemedi');
     }
   };
 
@@ -245,6 +273,24 @@ const Dashboard = () => {
   const profileUrl = `${window.location.origin}/q/${qr.slug}`;
   const latestUrl = qr.urls && qr.urls.length > 0 ? qr.urls[qr.urls.length - 1] : '';
 
+  const qrColorPalette = [
+    { label: 'Siyah', value: '#000000' },
+    { label: 'Lacivert', value: '#0f172a' },
+    { label: 'Koyu Yeşil', value: '#14532d' },
+    { label: 'Bordo', value: '#7f1d1d' },
+    { label: 'Mor', value: '#581c87' },
+    { label: 'Kahverengi', value: '#78350f' }
+  ];
+
+  const qrBgColorPalette = [
+    { label: 'Beyaz', value: '#ffffff' },
+    { label: 'Krem', value: '#fff7ed' },
+    { label: 'Açık Gri', value: '#f3f4f6' },
+    { label: 'Açık Sarı', value: '#fef9c3' },
+    { label: 'Açık Mavi', value: '#dbeafe' },
+    { label: 'Açık Yeşil', value: '#dcfce7' }
+  ];
+
   return (
     <Container maxWidth="md">
       <Paper style={{ padding: 24, marginTop: 24 }}>
@@ -269,50 +315,115 @@ const Dashboard = () => {
                 />
               </Box>
 
-              <Box style={{ marginTop: 14 }}>
+              <Box style={{ marginTop: 18 }}>
                 <Typography variant="body2" gutterBottom>
-                  QR Rengi
+                  QR Rengi Kartelası
                 </Typography>
 
-                <input
-                  type="color"
-                  value={qrColor}
-                  onChange={(event) => setQrColor(event.target.value)}
-                  style={{
-                    width: 54,
-                    height: 38,
-                    border: '1px solid #ddd',
-                    borderRadius: 6,
-                    cursor: 'pointer'
-                  }}
-                />
+                <Box style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 8 }}>
+                  {qrColorPalette.map((color) => (
+                    <Button
+                      key={color.value}
+                      variant={qrColor === color.value ? 'contained' : 'outlined'}
+                      size="small"
+                      onClick={() => setQrColor(color.value)}
+                      style={{ minWidth: 92 }}
+                    >
+                      <span
+                        style={{
+                          width: 14,
+                          height: 14,
+                          backgroundColor: color.value,
+                          border: '1px solid #999',
+                          display: 'inline-block',
+                          marginRight: 6
+                        }}
+                      />
+                      {color.label}
+                    </Button>
+                  ))}
+                </Box>
 
-                <Typography variant="caption" display="block" style={{ marginTop: 6 }}>
-                  Seçili QR rengi: {qrColor}
-                </Typography>
+                <Box style={{ marginTop: 12 }}>
+                  <input
+                    type="color"
+                    value={qrColor}
+                    onChange={(event) => setQrColor(event.target.value)}
+                    style={{
+                      width: 54,
+                      height: 38,
+                      border: '1px solid #ddd',
+                      borderRadius: 6,
+                      cursor: 'pointer'
+                    }}
+                  />
+
+                  <Typography variant="caption" display="block" style={{ marginTop: 6 }}>
+                    Seçili QR rengi: {qrColor}
+                  </Typography>
+                </Box>
               </Box>
 
-              <Box style={{ marginTop: 14 }}>
+              <Box style={{ marginTop: 18 }}>
                 <Typography variant="body2" gutterBottom>
-                  QR Arka Plan Rengi
+                  QR Arka Plan Rengi Kartelası
                 </Typography>
 
-                <input
-                  type="color"
-                  value={qrBgColor}
-                  onChange={(event) => setQrBgColor(event.target.value)}
-                  style={{
-                    width: 54,
-                    height: 38,
-                    border: '1px solid #ddd',
-                    borderRadius: 6,
-                    cursor: 'pointer'
-                  }}
-                />
+                <Box style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 8 }}>
+                  {qrBgColorPalette.map((color) => (
+                    <Button
+                      key={color.value}
+                      variant={qrBgColor === color.value ? 'contained' : 'outlined'}
+                      size="small"
+                      onClick={() => setQrBgColor(color.value)}
+                      style={{ minWidth: 92 }}
+                    >
+                      <span
+                        style={{
+                          width: 14,
+                          height: 14,
+                          backgroundColor: color.value,
+                          border: '1px solid #999',
+                          display: 'inline-block',
+                          marginRight: 6
+                        }}
+                      />
+                      {color.label}
+                    </Button>
+                  ))}
+                </Box>
 
-                <Typography variant="caption" display="block" style={{ marginTop: 6 }}>
-                  Seçili arka plan rengi: {qrBgColor}
+                <Box style={{ marginTop: 12 }}>
+                  <input
+                    type="color"
+                    value={qrBgColor}
+                    onChange={(event) => setQrBgColor(event.target.value)}
+                    style={{
+                      width: 54,
+                      height: 38,
+                      border: '1px solid #ddd',
+                      borderRadius: 6,
+                      cursor: 'pointer'
+                    }}
+                  />
+
+                  <Typography variant="caption" display="block" style={{ marginTop: 6 }}>
+                    Seçili arka plan rengi: {qrBgColor}
+                  </Typography>
+                </Box>
+
+                <Typography variant="caption" display="block" style={{ marginTop: 8 }}>
+                  Öneri: QR rengini koyu, arka plan rengini açık seç.
                 </Typography>
+
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={saveQrStyle}
+                  style={{ marginTop: 12 }}
+                >
+                  Renkleri Kaydet
+                </Button>
               </Box>
 
               <Typography variant="body2" style={{ marginTop: 12, wordBreak: 'break-all' }}>
