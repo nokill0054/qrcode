@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -5,6 +7,14 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const PORT = process.env.PORT || 5001;
+const BIND_HOST = process.env.BIND_HOST || '127.0.0.1';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/qr-manager';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  console.error('JWT_SECRET eksik. backend/.env dosyasını kontrol edin.');
+  process.exit(1);
+}
 const app = express();
 
 app.use(cors({
@@ -15,13 +25,13 @@ app.use(cors({
 
 app.use(express.json());
 
-mongoose.connect('mongodb://127.0.0.1:27017/qr-manager', {
+mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
 .then(() => {
   console.log('MongoDB bağlantısı başarılı');
-  app.listen(PORT, '127.0.0.1', () => console.log(`Server running on 127.0.0.1:${PORT}`));
+  app.listen(PORT, BIND_HOST, () => console.log(`Server running on ${BIND_HOST}:${PORT}`));
 })
 .catch((err) => {
   console.error('MongoDB bağlantı hatası:', err);
@@ -48,7 +58,6 @@ const UserSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', UserSchema);
 
-const JWT_SECRET = 'your-secret-key';
 
 const auth = async (req, res, next) => {
   try {
