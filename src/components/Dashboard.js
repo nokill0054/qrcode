@@ -7,26 +7,34 @@ import {
   Button,
   Typography,
   Box,
-  List,
-  ListItem,
-  ListItemText,
-  Snackbar,
   Grid,
-  CircularProgress
+  CircularProgress,
+  Snackbar,
+  Divider
 } from '@material-ui/core';
 import QRCode from 'qrcode.react';
 import MuiAlert from '@material-ui/lab/Alert';
 
+const Alert = (props) => {
+  return <MuiAlert elevation={6} variant="filled" {...props} />;
+};
+
 const Dashboard = () => {
   const [qr, setQr] = useState(null);
   const [newUrl, setNewUrl] = useState('');
+  const [profileForm, setProfileForm] = useState({
+    displayName: '',
+    bio: '',
+    website: '',
+    instagram: ''
+  });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(true);
   const [qrColor, setQrColor] = useState('#000000');
   const [qrBgColor, setQrBgColor] = useState('#ffffff');
-  const history = useHistory();
 
+  const history = useHistory();
   const token = localStorage.getItem('token');
 
   const getHeaders = () => ({
@@ -55,14 +63,23 @@ const Dashboard = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'QR bilgisi alınamadı');
+        throw new Error(data.error || 'QR data could not be loaded');
       }
+
+      const profile = data.profile || {};
+      const socialLinks = profile.socialLinks || {};
 
       setQr(data);
       setQrColor(data.qrColor || '#000000');
       setQrBgColor(data.qrBgColor || '#ffffff');
+      setProfileForm({
+        displayName: profile.displayName || '',
+        bio: profile.bio || '',
+        website: profile.website || '',
+        instagram: socialLinks.instagram || ''
+      });
     } catch (err) {
-      setError(err.message || 'QR bilgisi alınırken hata oluştu');
+      setError(err.message || 'QR data could not be loaded');
     } finally {
       setLoading(false);
     }
@@ -70,7 +87,7 @@ const Dashboard = () => {
 
   const addUrl = async () => {
     if (!newUrl) {
-      setError('Lütfen yönlendirme linki yaz');
+      setError('Please enter a destination URL');
       return;
     }
 
@@ -84,35 +101,63 @@ const Dashboard = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'URL eklenirken hata oluştu');
+        throw new Error(data.error || 'URL could not be published');
       }
 
       setQr(data);
       setNewUrl('');
-      setSuccess('Yeni yönlendirme linki yayınlandı');
+      setSuccess('New destination URL has been published');
     } catch (err) {
-      setError(err.message || 'URL eklenirken hata oluştu');
+      setError(err.message || 'URL could not be published');
     }
   };
 
-  const setRedirectMode = async () => {
+  const setQrMode = async (mode) => {
     try {
       const response = await fetch('/api/me/qr/mode', {
         method: 'PUT',
         headers: getHeaders(),
-        body: JSON.stringify({ mode: 'redirect' })
+        body: JSON.stringify({ mode })
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Mod değiştirilirken hata oluştu');
+        throw new Error(data.error || 'QR mode could not be updated');
       }
 
       setQr(data);
-      setSuccess('QR artık son linke yönlendirme modunda');
+      setSuccess(mode === 'profile' ? 'QR now opens your profile page' : 'QR now redirects to the latest destination URL');
     } catch (err) {
-      setError(err.message || 'Mod değiştirilirken hata oluştu');
+      setError(err.message || 'QR mode could not be updated');
+    }
+  };
+
+  const saveProfile = async () => {
+    try {
+      const response = await fetch('/api/me/qr/profile', {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify({
+          displayName: profileForm.displayName,
+          bio: profileForm.bio,
+          website: profileForm.website,
+          socialLinks: {
+            instagram: profileForm.instagram
+          }
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Profile could not be saved');
+      }
+
+      setQr(data);
+      setSuccess('Profile has been saved');
+    } catch (err) {
+      setError(err.message || 'Profile could not be saved');
     }
   };
 
@@ -130,15 +175,15 @@ const Dashboard = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'QR renkleri kaydedilemedi');
+        throw new Error(data.error || 'QR colors could not be saved');
       }
 
       setQr(data);
       setQrColor(data.qrColor || '#000000');
       setQrBgColor(data.qrBgColor || '#ffffff');
-      setSuccess('QR renk ayarları kaydedildi');
+      setSuccess('QR color settings have been saved');
     } catch (err) {
-      setError(err.message || 'QR renkleri kaydedilemedi');
+      setError(err.message || 'QR colors could not be saved');
     }
   };
 
@@ -147,7 +192,7 @@ const Dashboard = () => {
       const qrElement = document.getElementById('user-qr-code');
 
       if (!qrElement) {
-        setError('QR kod alanı bulunamadı.');
+        setError('QR code area was not found');
         return;
       }
 
@@ -160,7 +205,7 @@ const Dashboard = () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        setSuccess('QR PNG indirildi');
+        setSuccess('QR PNG downloaded');
         return;
       }
 
@@ -191,21 +236,21 @@ const Dashboard = () => {
           document.body.removeChild(link);
 
           URL.revokeObjectURL(url);
-          setSuccess('QR PNG indirildi');
+          setSuccess('QR PNG downloaded');
         };
 
         image.onerror = () => {
           URL.revokeObjectURL(url);
-          setError('QR PNG oluşturulamadı.');
+          setError('QR PNG could not be created');
         };
 
         image.src = url;
         return;
       }
 
-      setError('İndirilecek QR kod bulunamadı.');
+      setError('No downloadable QR code was found');
     } catch (err) {
-      setError('QR PNG indirme başarısız oldu.');
+      setError('QR PNG download failed');
     }
   };
 
@@ -227,7 +272,7 @@ const Dashboard = () => {
 
       setSuccess(successMessage);
     } catch (err) {
-      setError('Kopyalama başarısız oldu. Linki elle seçip kopyalayabilirsin.');
+      setError('Copy failed. Please select and copy the link manually.');
     }
   };
 
@@ -242,7 +287,7 @@ const Dashboard = () => {
         <Paper style={{ padding: 30, marginTop: 30, textAlign: 'center' }}>
           <CircularProgress />
           <Typography style={{ marginTop: 15 }}>
-            Dashboard yükleniyor...
+            Loading dashboard...
           </Typography>
         </Paper>
       </Container>
@@ -254,7 +299,7 @@ const Dashboard = () => {
       <Container maxWidth="md">
         <Paper style={{ padding: 30, marginTop: 30, textAlign: 'center' }}>
           <Typography color="error">
-            QR bilgisi yüklenemedi.
+            QR data could not be loaded.
           </Typography>
           <Button
             variant="contained"
@@ -262,7 +307,7 @@ const Dashboard = () => {
             onClick={fetchQr}
             style={{ marginTop: 15 }}
           >
-            Tekrar Dene
+            Try Again
           </Button>
         </Paper>
       </Container>
@@ -274,41 +319,59 @@ const Dashboard = () => {
   const latestUrl = qr.urls && qr.urls.length > 0 ? qr.urls[qr.urls.length - 1] : '';
 
   const qrColorPalette = [
-    { label: 'Siyah', value: '#000000' },
-    { label: 'Lacivert', value: '#0f172a' },
-    { label: 'Koyu Yeşil', value: '#14532d' },
-    { label: 'Bordo', value: '#7f1d1d' },
-    { label: 'Mor', value: '#581c87' },
-    { label: 'Kahverengi', value: '#78350f' }
+    { label: 'Black', value: '#000000' },
+    { label: 'Navy', value: '#0f172a' },
+    { label: 'Green', value: '#14532d' },
+    { label: 'Burgundy', value: '#7f1d1d' },
+    { label: 'Purple', value: '#581c87' },
+    { label: 'Brown', value: '#78350f' }
   ];
 
   const qrBgColorPalette = [
-    { label: 'Beyaz', value: '#ffffff' },
-    { label: 'Krem', value: '#fff7ed' },
-    { label: 'Açık Gri', value: '#f3f4f6' },
-    { label: 'Açık Sarı', value: '#fef9c3' },
-    { label: 'Açık Mavi', value: '#dbeafe' },
-    { label: 'Açık Yeşil', value: '#dcfce7' }
+    { label: 'White', value: '#ffffff' },
+    { label: 'Cream', value: '#fff7ed' },
+    { label: 'Light Gray', value: '#f3f4f6' },
+    { label: 'Light Yellow', value: '#fef9c3' },
+    { label: 'Light Blue', value: '#dbeafe' },
+    { label: 'Light Green', value: '#dcfce7' }
   ];
 
   return (
-    <Container maxWidth="md">
-      <Paper style={{ padding: 24, marginTop: 24 }}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} style={{ textAlign: 'center' }}>
+    <Container maxWidth="lg">
+      <Box style={{ marginTop: 24, marginBottom: 24 }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} md={8}>
             <Typography variant="h4" gutterBottom>
-              QR Kod Yönetim Paneli
+              B54 QR Dashboard
+            </Typography>
+            <Typography variant="body1" color="textSecondary">
+              Manage your permanent QR code, update its destination, customize its colors, and download it for print.
+            </Typography>
+          </Grid>
+
+          <Grid item xs={12} md={4} style={{ textAlign: 'right' }}>
+            <Button variant="outlined" onClick={logout}>
+              Logout
+            </Button>
+          </Grid>
+        </Grid>
+      </Box>
+
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={5}>
+          <Paper style={{ padding: 24, height: '100%' }}>
+            <Typography variant="h6" gutterBottom>
+              Your Permanent QR Code
+            </Typography>
+            <Typography variant="body2" color="textSecondary" style={{ marginBottom: 18 }}>
+              This QR code stays the same. You can change the destination behind it anytime.
             </Typography>
 
-            <Typography variant="body2" style={{ marginBottom: 20 }}>
-              Bu QR kod sabit kalır. Sen sadece arkasındaki hedef linki değiştirirsin.
-            </Typography>
-
-            <Box mb={3}>
-              <Box id="user-qr-code">
+            <Box style={{ textAlign: 'center' }}>
+              <Box id="user-qr-code" style={{ display: 'inline-block', padding: 12, backgroundColor: qrBgColor }}>
                 <QRCode
                   value={qrRedirectUrl}
-                  size={220}
+                  size={230}
                   level="H"
                   fgColor={qrColor}
                   bgColor={qrBgColor}
@@ -316,185 +379,180 @@ const Dashboard = () => {
               </Box>
 
               <Box style={{ marginTop: 18 }}>
-                <Typography variant="body2" gutterBottom>
-                  QR Rengi Kartelası
-                </Typography>
-
-                <Box style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 8 }}>
-                  {qrColorPalette.map((color) => (
-                    <Button
-                      key={color.value}
-                      variant={qrColor === color.value ? 'contained' : 'outlined'}
-                      size="small"
-                      onClick={() => setQrColor(color.value)}
-                      style={{ minWidth: 92 }}
-                    >
-                      <span
-                        style={{
-                          width: 14,
-                          height: 14,
-                          backgroundColor: color.value,
-                          border: '1px solid #999',
-                          display: 'inline-block',
-                          marginRight: 6
-                        }}
-                      />
-                      {color.label}
-                    </Button>
-                  ))}
-                </Box>
-
-                <Box style={{ marginTop: 12 }}>
-                  <input
-                    type="color"
-                    value={qrColor}
-                    onChange={(event) => setQrColor(event.target.value)}
-                    style={{
-                      width: 54,
-                      height: 38,
-                      border: '1px solid #ddd',
-                      borderRadius: 6,
-                      cursor: 'pointer'
-                    }}
-                  />
-
-                  <Typography variant="caption" display="block" style={{ marginTop: 6 }}>
-                    Seçili QR rengi: {qrColor}
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Box style={{ marginTop: 18 }}>
-                <Typography variant="body2" gutterBottom>
-                  QR Arka Plan Rengi Kartelası
-                </Typography>
-
-                <Box style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 8 }}>
-                  {qrBgColorPalette.map((color) => (
-                    <Button
-                      key={color.value}
-                      variant={qrBgColor === color.value ? 'contained' : 'outlined'}
-                      size="small"
-                      onClick={() => setQrBgColor(color.value)}
-                      style={{ minWidth: 92 }}
-                    >
-                      <span
-                        style={{
-                          width: 14,
-                          height: 14,
-                          backgroundColor: color.value,
-                          border: '1px solid #999',
-                          display: 'inline-block',
-                          marginRight: 6
-                        }}
-                      />
-                      {color.label}
-                    </Button>
-                  ))}
-                </Box>
-
-                <Box style={{ marginTop: 12 }}>
-                  <input
-                    type="color"
-                    value={qrBgColor}
-                    onChange={(event) => setQrBgColor(event.target.value)}
-                    style={{
-                      width: 54,
-                      height: 38,
-                      border: '1px solid #ddd',
-                      borderRadius: 6,
-                      cursor: 'pointer'
-                    }}
-                  />
-
-                  <Typography variant="caption" display="block" style={{ marginTop: 6 }}>
-                    Seçili arka plan rengi: {qrBgColor}
-                  </Typography>
-                </Box>
-
-                <Typography variant="caption" display="block" style={{ marginTop: 8 }}>
-                  Öneri: QR rengini koyu, arka plan rengini açık seç.
-                </Typography>
-
                 <Button
                   variant="contained"
                   color="primary"
-                  onClick={saveQrStyle}
-                  style={{ marginTop: 12 }}
+                  onClick={downloadQrPng}
+                  style={{ marginRight: 8, marginBottom: 8 }}
                 >
-                  Renkleri Kaydet
+                  Download QR PNG
                 </Button>
-              </Box>
 
-              <Typography variant="body2" style={{ marginTop: 12, wordBreak: 'break-all' }}>
-                QR Linki: {qrRedirectUrl}
-              </Typography>
-
-              <Button
-                variant="outlined"
-                color="primary"
-                onClick={() => copyText(qrRedirectUrl, 'QR linki kopyalandı')}
-                style={{ marginTop: 10, marginRight: 10 }}
-              >
-                QR Linkini Kopyala
-              </Button>
-
-              <Button
-                variant="outlined"
-                onClick={downloadQrPng}
-                style={{ marginTop: 10 }}
-              >
-                QR PNG İndir
-              </Button>
-
-              <Typography variant="body2" style={{ marginTop: 14, wordBreak: 'break-all' }}>
-                Profil Sayfası: {profileUrl}
-              </Typography>
-
-              <Button
-                variant="outlined"
-                onClick={() => copyText(profileUrl, 'Profil linki kopyalandı')}
-                style={{ marginTop: 10 }}
-              >
-                Profil Linkini Kopyala
-              </Button>
-            </Box>
-
-            <Box mb={3}>
-              <Typography variant="h6">
-                Şu Anki Mod: {qr.mode === 'profile' ? 'Profil Sayfası' : 'Direkt Link Yönlendirme'}
-              </Typography>
-
-              {qr.mode !== 'redirect' && (
                 <Button
                   variant="outlined"
                   color="primary"
-                  onClick={setRedirectMode}
-                  style={{ marginTop: 10 }}
+                  onClick={() => copyText(qrRedirectUrl, 'QR link copied')}
+                  style={{ marginBottom: 8 }}
                 >
-                  Direkt Link Yönlendirme Moduna Al
+                  Copy QR Link
                 </Button>
-              )}
+              </Box>
             </Box>
 
-            <Box mb={3}>
-              <Typography variant="h6">
-                Şu An QR Kodun Gideceği Link
-              </Typography>
-              <Typography style={{ wordBreak: 'break-all' }}>
-                {latestUrl || 'Henüz link eklenmemiş'}
-              </Typography>
-            </Box>
-          </Grid>
+            <Divider style={{ marginTop: 20, marginBottom: 16 }} />
 
-          <Grid item xs={12}>
+            <Typography variant="body2" color="textSecondary">
+              QR link
+            </Typography>
+            <Typography variant="body2" style={{ wordBreak: 'break-all', marginBottom: 12 }}>
+              {qrRedirectUrl}
+            </Typography>
+
+            <Typography variant="body2" color="textSecondary">
+              Profile link
+            </Typography>
+            <Typography variant="body2" style={{ wordBreak: 'break-all' }}>
+              {profileUrl}
+            </Typography>
+
+            <Button
+              variant="outlined"
+              onClick={() => copyText(profileUrl, 'Profile link copied')}
+              style={{ marginTop: 12 }}
+            >
+              Copy Profile Link
+            </Button>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} md={7}>
+          <Paper style={{ padding: 24, height: '100%' }}>
             <Typography variant="h6" gutterBottom>
-              Yeni Yönlendirme Linki Yayınla
+              QR Color Settings
+            </Typography>
+            <Typography variant="body2" color="textSecondary" style={{ marginBottom: 18 }}>
+              Choose from the palettes or use the custom color pickers. For best scanning, use a dark QR color and a light background.
+            </Typography>
+
+            <Typography variant="body2" gutterBottom>
+              QR Color Palette
+            </Typography>
+            <Box style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+              {qrColorPalette.map((color) => (
+                <Button
+                  key={color.value}
+                  variant={qrColor === color.value ? 'contained' : 'outlined'}
+                  size="small"
+                  onClick={() => setQrColor(color.value)}
+                  style={{ minWidth: 105 }}
+                >
+                  <span
+                    style={{
+                      width: 14,
+                      height: 14,
+                      backgroundColor: color.value,
+                      border: '1px solid #999',
+                      display: 'inline-block',
+                      marginRight: 6
+                    }}
+                  />
+                  {color.label}
+                </Button>
+              ))}
+            </Box>
+
+            <Box style={{ marginBottom: 20 }}>
+              <input
+                type="color"
+                value={qrColor}
+                onChange={(event) => setQrColor(event.target.value)}
+                style={{
+                  width: 54,
+                  height: 38,
+                  border: '1px solid #ddd',
+                  borderRadius: 6,
+                  cursor: 'pointer'
+                }}
+              />
+              <Typography variant="caption" display="block" style={{ marginTop: 6 }}>
+                Selected QR color: {qrColor}
+              </Typography>
+            </Box>
+
+            <Typography variant="body2" gutterBottom>
+              Background Color Palette
+            </Typography>
+            <Box style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+              {qrBgColorPalette.map((color) => (
+                <Button
+                  key={color.value}
+                  variant={qrBgColor === color.value ? 'contained' : 'outlined'}
+                  size="small"
+                  onClick={() => setQrBgColor(color.value)}
+                  style={{ minWidth: 105 }}
+                >
+                  <span
+                    style={{
+                      width: 14,
+                      height: 14,
+                      backgroundColor: color.value,
+                      border: '1px solid #999',
+                      display: 'inline-block',
+                      marginRight: 6
+                    }}
+                  />
+                  {color.label}
+                </Button>
+              ))}
+            </Box>
+
+            <Box style={{ marginBottom: 20 }}>
+              <input
+                type="color"
+                value={qrBgColor}
+                onChange={(event) => setQrBgColor(event.target.value)}
+                style={{
+                  width: 54,
+                  height: 38,
+                  border: '1px solid #ddd',
+                  borderRadius: 6,
+                  cursor: 'pointer'
+                }}
+              />
+              <Typography variant="caption" display="block" style={{ marginTop: 6 }}>
+                Selected background color: {qrBgColor}
+              </Typography>
+            </Box>
+
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={saveQrStyle}
+            >
+              Save Color Settings
+            </Button>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <Paper style={{ padding: 24 }}>
+            <Typography variant="h6" gutterBottom>
+              Destination Link
+            </Typography>
+            <Typography variant="body2" color="textSecondary" style={{ marginBottom: 12 }}>
+              Update where your QR code should send people.
+            </Typography>
+
+            <Typography variant="body2" color="textSecondary">
+              Current destination
+            </Typography>
+            <Typography style={{ wordBreak: 'break-all', marginBottom: 14 }}>
+              {latestUrl || 'No destination URL has been published yet'}
             </Typography>
 
             <TextField
               fullWidth
-              label="Örn: https://www.example.com"
+              label="Example: https://www.example.com"
               value={newUrl}
               onChange={(e) => setNewUrl(e.target.value)}
               margin="normal"
@@ -507,46 +565,136 @@ const Dashboard = () => {
               onClick={addUrl}
               style={{ marginTop: 10 }}
             >
-              Linki Yayınla
+              Publish Destination
             </Button>
-          </Grid>
-
-          <Grid item xs={12}>
-            <Typography variant="h6" gutterBottom>
-              Önceki Yönlendirme Linkleri
-            </Typography>
-
-            <List>
-              {(qr.urls || []).map((url, index) => (
-                <ListItem key={index}>
-                  <ListItemText
-                    primary={url}
-                    secondary={index === qr.urls.length - 1 ? 'Aktif son link' : ''}
-                  />
-                </ListItem>
-              ))}
-            </List>
-          </Grid>
-
-          <Grid item xs={12} style={{ textAlign: 'right' }}>
-            <Button variant="outlined" onClick={logout}>
-              Çıkış Yap
-            </Button>
-          </Grid>
+          </Paper>
         </Grid>
 
-        <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError('')}>
-          <MuiAlert elevation={6} variant="filled" severity="error">
-            {error}
-          </MuiAlert>
-        </Snackbar>
+        <Grid item xs={12} md={6}>
+          <Paper style={{ padding: 24 }}>
+            <Typography variant="h6" gutterBottom>
+              QR Mode
+            </Typography>
+            <Typography variant="body2" color="textSecondary" style={{ marginBottom: 12 }}>
+              Choose whether your QR opens your profile page or directly redirects to your latest destination URL.
+            </Typography>
 
-        <Snackbar open={!!success} autoHideDuration={5000} onClose={() => setSuccess('')}>
-          <MuiAlert elevation={6} variant="filled" severity="success">
-            {success}
-          </MuiAlert>
-        </Snackbar>
-      </Paper>
+            <Typography style={{ marginBottom: 12 }}>
+              Current mode: <strong>{qr.mode === 'profile' ? 'Profile Page' : 'Direct Redirect'}</strong>
+            </Typography>
+
+            <Button
+              variant={qr.mode === 'redirect' ? 'contained' : 'outlined'}
+              color="primary"
+              onClick={() => setQrMode('redirect')}
+              style={{ marginRight: 8, marginBottom: 8 }}
+            >
+              Direct Redirect
+            </Button>
+
+            <Button
+              variant={qr.mode === 'profile' ? 'contained' : 'outlined'}
+              color="primary"
+              onClick={() => setQrMode('profile')}
+              style={{ marginBottom: 8 }}
+            >
+              Profile Page
+            </Button>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12}>
+          <Paper style={{ padding: 24 }}>
+            <Typography variant="h6" gutterBottom>
+              Profile Page Settings
+            </Typography>
+            <Typography variant="body2" color="textSecondary" style={{ marginBottom: 12 }}>
+              These details appear on your public profile page when your QR is in profile mode.
+            </Typography>
+
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Display name"
+                  value={profileForm.displayName}
+                  onChange={(e) => setProfileForm({ ...profileForm, displayName: e.target.value })}
+                  margin="normal"
+                  variant="outlined"
+                />
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Website"
+                  value={profileForm.website}
+                  onChange={(e) => setProfileForm({ ...profileForm, website: e.target.value })}
+                  margin="normal"
+                  variant="outlined"
+                />
+              </Grid>
+
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Bio"
+                  value={profileForm.bio}
+                  onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
+                  margin="normal"
+                  variant="outlined"
+                  multiline
+                  rows={3}
+                />
+              </Grid>
+
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Instagram URL"
+                  value={profileForm.instagram}
+                  onChange={(e) => setProfileForm({ ...profileForm, instagram: e.target.value })}
+                  margin="normal"
+                  variant="outlined"
+                />
+              </Grid>
+            </Grid>
+
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={saveProfile}
+              style={{ marginTop: 10 }}
+            >
+              Save Profile
+            </Button>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12}>
+          <Paper style={{ padding: 24 }}>
+            <Typography variant="h6" gutterBottom>
+              How to Use This QR
+            </Typography>
+            <Typography variant="body2" color="textSecondary">
+              Download the PNG file and place it on business cards, stickers, product labels, flyers, menus, packaging, or social media graphics.
+              The printed QR can stay the same while you update the destination link from this dashboard.
+            </Typography>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      <Snackbar open={Boolean(error)} autoHideDuration={5000} onClose={() => setError('')}>
+        <Alert onClose={() => setError('')} severity="error">
+          {error}
+        </Alert>
+      </Snackbar>
+
+      <Snackbar open={Boolean(success)} autoHideDuration={4000} onClose={() => setSuccess('')}>
+        <Alert onClose={() => setSuccess('')} severity="success">
+          {success}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };
