@@ -23,6 +23,7 @@ const Dashboard = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(true);
+  const [qrColor, setQrColor] = useState('#000000');
   const history = useHistory();
 
   const token = localStorage.getItem('token');
@@ -259,10 +260,35 @@ const Dashboard = () => {
             <Box mb={3}>
               <Box id="user-qr-code">
                 <QRCode
-                value={qrRedirectUrl}
-                size={220}
-                level="H"
-              />
+                  value={qrRedirectUrl}
+                  size={220}
+                  level="H"
+                  fgColor={qrColor}
+                  bgColor="#ffffff"
+                />
+              </Box>
+
+              <Box style={{ marginTop: 14 }}>
+                <Typography variant="body2" gutterBottom>
+                  QR Rengi
+                </Typography>
+
+                <input
+                  type="color"
+                  value={qrColor}
+                  onChange={(event) => setQrColor(event.target.value)}
+                  style={{
+                    width: 54,
+                    height: 38,
+                    border: '1px solid #ddd',
+                    borderRadius: 6,
+                    cursor: 'pointer'
+                  }}
+                />
+
+                <Typography variant="caption" display="block" style={{ marginTop: 6 }}>
+                  Seçili renk: {qrColor}
+                </Typography>
               </Box>
 
               <Typography variant="body2" style={{ marginTop: 12, wordBreak: 'break-all' }}>
