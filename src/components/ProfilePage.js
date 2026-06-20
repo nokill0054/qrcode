@@ -62,6 +62,19 @@ const ProfilePage = () => {
   const profile = profileData.profile || {};
   const socialLinks = profile.socialLinks || {};
 
+  const normalizeExternalUrl = (url) => {
+    if (!url) return '';
+    if (/^https?:\/\//i.test(url)) return url;
+    return `https://${url}`;
+  };
+
+  const openExternalUrl = (url) => {
+    const safeUrl = normalizeExternalUrl(url);
+    if (safeUrl) {
+      window.open(safeUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   return (
     <Container maxWidth="sm" sx={{ mt: 8 }}>
       <Paper elevation={3} sx={{ p: 4, textAlign: 'center' }}>
@@ -79,9 +92,7 @@ const ProfilePage = () => {
           <Box sx={{ mb: 3 }}>
             <Button
               variant="contained"
-              href={profile.website}
-              target="_blank"
-              rel="noopener noreferrer"
+              onClick={() => openExternalUrl(profile.website)}
             >
               Website
             </Button>
@@ -92,9 +103,7 @@ const ProfilePage = () => {
           <Box sx={{ mb: 3 }}>
             <Button
               variant="outlined"
-              href={profileData.latestUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+              onClick={() => openExternalUrl(profileData.latestUrl)}
             >
               Son Bağlantıya Git
             </Button>
