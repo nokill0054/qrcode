@@ -286,6 +286,102 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+app.get('/api/me/qr', auth, async (req, res, next) => {
+  try {
+    const qr = await ensureUserQr(req.user);
+
+    res.json({
+      id: qr._id,
+      slug: qr.slug || qr.userId,
+      mode: qr.mode || 'redirect',
+      urls: qr.urls || [],
+      profile: qr.profile || {}
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/api/me/qr/urls', auth, async (req, res, next) => {
+  try {
+    const { url } = req.body;
+
+    if (!url) {
+      return res.status(400).json({ error: 'url gerekli' });
+    }
+
+    const qr = await ensureUserQr(req.user);
+
+    qr.urls.push(url);
+    qr.updatedAt = new Date();
+    await qr.save();
+
+    res.json({
+      id: qr._id,
+      slug: qr.slug || qr.userId,
+      mode: qr.mode || 'redirect',
+      urls: qr.urls || [],
+      profile: qr.profile || {}
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.put('/api/me/qr/mode', auth, async (req, res, next) => {
+  try {
+    const { mode } = req.body;
+
+    if (!['redirect', 'profile'].includes(mode)) {
+      return res.status(400).json({ error: 'mode redirect veya profile olmalı' });
+    }
+
+    const qr = await ensureUserQr(req.user);
+
+    qr.mode = mode;
+    qr.updatedAt = new Date();
+    await qr.save();
+
+    res.json({
+      id: qr._id,
+      slug: qr.slug || qr.userId,
+      mode: qr.mode || 'redirect',
+      urls: qr.urls || [],
+      profile: qr.profile || {}
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.put('/api/me/qr/profile', auth, async (req, res, next) => {
+  try {
+    const { displayName, bio, website, socialLinks } = req.body;
+
+    const qr = await ensureUserQr(req.user);
+
+    qr.profile = {
+      displayName: displayName || '',
+      bio: bio || '',
+      website: website || '',
+      socialLinks: socialLinks || {}
+    };
+
+    qr.updatedAt = new Date();
+    await qr.save();
+
+    res.json({
+      id: qr._id,
+      slug: qr.slug || qr.userId,
+      mode: qr.mode || 'redirect',
+      urls: qr.urls || [],
+      profile: qr.profile || {}
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get('/api/auth/me', auth, async (req, res, next) => {
   try {
     const user = await User.findById(req.userId).select('-password');
