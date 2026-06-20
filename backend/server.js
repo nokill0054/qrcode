@@ -194,6 +194,32 @@ app.get('/api/qr/:userId', async (req, res) => {
   }
 });
 
+app.get('/api/public/profile/:slug', async (req, res, next) => {
+  try {
+    const { slug } = req.params;
+
+    const qr = await QR.findOne({
+      $or: [
+        { slug },
+        { userId: slug }
+      ]
+    });
+
+    if (!qr) {
+      return res.status(404).json({ error: 'Profil bulunamadı' });
+    }
+
+    res.json({
+      slug: qr.slug || qr.userId,
+      mode: qr.mode || 'redirect',
+      profile: qr.profile || {},
+      latestUrl: qr.urls && qr.urls.length > 0 ? qr.urls[qr.urls.length - 1] : null
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get('/api/redirect/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
