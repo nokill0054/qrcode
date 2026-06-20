@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { 
-  Container, 
-  Paper, 
-  TextField, 
-  Button, 
-  Typography, 
-  Tabs, 
-  Tab, 
+import {
+  Container,
+  Paper,
+  TextField,
+  Button,
+  Typography,
+  Tabs,
+  Tab,
   Box,
-  Snackbar 
+  Snackbar
 } from '@material-ui/core';
 import MuiAlert from '@material-ui/lab/Alert';
 
@@ -22,10 +22,10 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
-      console.log('Form gönderiliyor...', { email, password });
       const endpoint = tab === 0 ? 'login' : 'register';
-      
+
       const response = await fetch(`/api/auth/${endpoint}`, {
         method: 'POST',
         headers: {
@@ -35,23 +35,29 @@ const Login = () => {
       });
 
       const data = await response.json();
-      console.log('Sunucu yanıtı:', data);
 
       if (!response.ok) {
         throw new Error(data.error || 'Bir hata oluştu');
       }
 
       localStorage.setItem('token', data.token);
-      history.push('/generate');
+      history.push('/dashboard');
     } catch (err) {
-      console.error('Hata detayı:', err);
       setError(err.message || 'Sunucuya bağlanılamadı');
     }
   };
 
   return (
     <Container maxWidth="sm">
-      <Paper style={{ padding: 20, marginTop: 20 }}>
+      <Paper style={{ padding: 24, marginTop: 40 }}>
+        <Typography variant="h4" align="center" gutterBottom>
+          B54 QR Yönetim Paneli
+        </Typography>
+
+        <Typography variant="body2" align="center" style={{ marginBottom: 20 }}>
+          Sabit QR kodunu yönet. Hedef linki istediğin zaman değiştir.
+        </Typography>
+
         <Tabs
           value={tab}
           onChange={(e, newValue) => setTab(newValue)}
@@ -65,6 +71,7 @@ const Login = () => {
           <Typography variant="h5" align="center">
             {tab === 0 ? 'Giriş Yap' : 'Kayıt Ol'}
           </Typography>
+
           <form onSubmit={handleSubmit}>
             <TextField
               fullWidth
@@ -75,6 +82,7 @@ const Login = () => {
               margin="normal"
               required
             />
+
             <TextField
               fullWidth
               label="Şifre"
@@ -84,6 +92,7 @@ const Login = () => {
               margin="normal"
               required
             />
+
             <Button
               type="submit"
               variant="contained"
@@ -106,4 +115,4 @@ const Login = () => {
   );
 };
 
-export default Login; 
+export default Login;
