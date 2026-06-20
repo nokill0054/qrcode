@@ -43,9 +43,33 @@ mongoose.connection.on('error', err => {
 });
 
 const QRSchema = new mongoose.Schema({
+  // Legacy field: MVP-001 döneminde QR identifier olarak kullanıldı.
+  // MVP-002 boyunca geriye dönük uyumluluk için korunur.
   userId: String,
+
+  // MVP-002 fields
+  ownerUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  slug: { type: String, unique: true, sparse: true },
+  mode: { type: String, enum: ['redirect', 'profile'], default: 'redirect' },
+
   urls: [String],
+
+  profile: {
+    displayName: String,
+    bio: String,
+    website: String,
+    socialLinks: {
+      instagram: String,
+      x: String,
+      linkedin: String,
+      facebook: String,
+      youtube: String,
+      tiktok: String
+    }
+  },
+
   createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
 });
 
 const QR = mongoose.model('QR', QRSchema);
@@ -53,6 +77,7 @@ const QR = mongoose.model('QR', QRSchema);
 const UserSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
+  defaultQrSlug: { type: String, unique: true, sparse: true },
   createdAt: { type: Date, default: Date.now },
 });
 
