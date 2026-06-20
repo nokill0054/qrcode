@@ -24,6 +24,7 @@ const Dashboard = () => {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(true);
   const [qrColor, setQrColor] = useState('#000000');
+  const [qrBgColor, setQrBgColor] = useState('#ffffff');
   const history = useHistory();
 
   const token = localStorage.getItem('token');
@@ -150,7 +151,7 @@ const Dashboard = () => {
           exportCanvas.height = image.height || 512;
 
           const context = exportCanvas.getContext('2d');
-          context.fillStyle = '#ffffff';
+          context.fillStyle = qrBgColor;
           context.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
           context.drawImage(image, 0, 0);
 
@@ -264,7 +265,7 @@ const Dashboard = () => {
                   size={220}
                   level="H"
                   fgColor={qrColor}
-                  bgColor="#ffffff"
+                  bgColor={qrBgColor}
                 />
               </Box>
 
@@ -287,7 +288,30 @@ const Dashboard = () => {
                 />
 
                 <Typography variant="caption" display="block" style={{ marginTop: 6 }}>
-                  Seçili renk: {qrColor}
+                  Seçili QR rengi: {qrColor}
+                </Typography>
+              </Box>
+
+              <Box style={{ marginTop: 14 }}>
+                <Typography variant="body2" gutterBottom>
+                  QR Arka Plan Rengi
+                </Typography>
+
+                <input
+                  type="color"
+                  value={qrBgColor}
+                  onChange={(event) => setQrBgColor(event.target.value)}
+                  style={{
+                    width: 54,
+                    height: 38,
+                    border: '1px solid #ddd',
+                    borderRadius: 6,
+                    cursor: 'pointer'
+                  }}
+                />
+
+                <Typography variant="caption" display="block" style={{ marginTop: 6 }}>
+                  Seçili arka plan rengi: {qrBgColor}
                 </Typography>
               </Box>
 
