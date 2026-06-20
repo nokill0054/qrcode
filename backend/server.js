@@ -83,6 +83,56 @@ const UserSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', UserSchema);
 
+const createSlugFromEmail = (email) => {
+  const base = String(email || 'user')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 32) || 'user';
+
+  const suffix = Math.random().toString(36).slice(2, 8);
+  return `${base}-${suffix}`;
+};
+
+const ensureUserQr = async (user) => {
+  if (!user) {
+    throw new Error('User bulunamadı');
+  }
+
+  let qr = await QR.findOne({ ownerUserId: user._id });
+
+  if (!qr && user.defaultQrSlug) {
+    qr = await QR.findOne({ slug: user.defaultQrSlug });
+  }
+
+  if (!qr) {
+    const slug = user.defaultQrSlug || createSlugFromEmail(user.email);
+
+    qr = new QR({
+      userId: slug,
+      ownerUserId: user._id,
+      slug,
+      mode: 'redirect',
+      urls: [],
+      profile: {
+        displayName: '',
+        bio: '',
+        website: '',
+        socialLinks: {}
+      }
+    });
+
+    await qr.save();
+
+    if (!user.defaultQrSlug) {
+      user.defaultQrSlug = slug;
+      await user.save();
+    }
+  }
+
+  return qr;
+};
+
 
 const auth = async (req, res, next) => {
   try {
@@ -95,6 +145,7 @@ const auth = async (req, res, next) => {
     }
 
     req.user = user;
+    req.userId = decoded.userId;
     next();
   } catch (error) {
     res.status(401).json({ error: 'Lütfen giriş yapın' });
@@ -232,6 +283,31 @@ app.post('/api/auth/login', async (req, res) => {
     res.json({ token });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/auth/me', auth, async (req, res, next) => {
+  try {
+    const user = await User.findById(req.userId).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+    }
+
+    const qr = await ensureUserQr(user);
+
+    res.json({
+      user,
+      qr: {
+        id: qr._id,
+        slug: qr.slug || qr.userId,
+        mode: qr.mode || 'redirect',
+        urls: qr.urls || [],
+        profile: qr.profile || {}
+      }
+    });
+  } catch (error) {
+    next(error);
   }
 });
 
