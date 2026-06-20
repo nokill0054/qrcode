@@ -112,6 +112,28 @@ const Dashboard = () => {
     }
   };
 
+  const copyText = async (textToCopy, successMessage) => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(textToCopy);
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = textToCopy;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-9999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+
+      setSuccess(successMessage);
+    } catch (err) {
+      setError('Kopyalama başarısız oldu. Linki elle seçip kopyalayabilirsin.');
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     history.push('/login');
@@ -178,9 +200,26 @@ const Dashboard = () => {
                 QR Linki: {qrRedirectUrl}
               </Typography>
 
-              <Typography variant="body2" style={{ marginTop: 8, wordBreak: 'break-all' }}>
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={() => copyText(qrRedirectUrl, 'QR linki kopyalandı')}
+                style={{ marginTop: 10, marginRight: 10 }}
+              >
+                QR Linkini Kopyala
+              </Button>
+
+              <Typography variant="body2" style={{ marginTop: 14, wordBreak: 'break-all' }}>
                 Profil Sayfası: {profileUrl}
               </Typography>
+
+              <Button
+                variant="outlined"
+                onClick={() => copyText(profileUrl, 'Profil linki kopyalandı')}
+                style={{ marginTop: 10 }}
+              >
+                Profil Linkini Kopyala
+              </Button>
             </Box>
 
             <Box mb={3}>
