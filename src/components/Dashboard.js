@@ -112,6 +112,73 @@ const Dashboard = () => {
     }
   };
 
+  const downloadQrPng = () => {
+    try {
+      const qrElement = document.getElementById('user-qr-code');
+
+      if (!qrElement) {
+        setError('QR kod alanı bulunamadı.');
+        return;
+      }
+
+      const canvas = qrElement.querySelector('canvas');
+
+      if (canvas) {
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL('image/png');
+        link.download = `b54-qr-${qr?.slug || 'code'}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setSuccess('QR PNG indirildi');
+        return;
+      }
+
+      const svg = qrElement.querySelector('svg');
+
+      if (svg) {
+        const serializer = new XMLSerializer();
+        const svgString = serializer.serializeToString(svg);
+        const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(svgBlob);
+        const image = new Image();
+
+        image.onload = () => {
+          const exportCanvas = document.createElement('canvas');
+          exportCanvas.width = image.width || 512;
+          exportCanvas.height = image.height || 512;
+
+          const context = exportCanvas.getContext('2d');
+          context.fillStyle = '#ffffff';
+          context.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+          context.drawImage(image, 0, 0);
+
+          const link = document.createElement('a');
+          link.href = exportCanvas.toDataURL('image/png');
+          link.download = `b54-qr-${qr?.slug || 'code'}.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+
+          URL.revokeObjectURL(url);
+          setSuccess('QR PNG indirildi');
+        };
+
+        image.onerror = () => {
+          URL.revokeObjectURL(url);
+          setError('QR PNG oluşturulamadı.');
+        };
+
+        image.src = url;
+        return;
+      }
+
+      setError('İndirilecek QR kod bulunamadı.');
+    } catch (err) {
+      setError('QR PNG indirme başarısız oldu.');
+    }
+  };
+
   const copyText = async (textToCopy, successMessage) => {
     try {
       if (navigator.clipboard && window.isSecureContext) {
@@ -190,11 +257,13 @@ const Dashboard = () => {
             </Typography>
 
             <Box mb={3}>
-              <QRCode
+              <Box id="user-qr-code">
+                <QRCode
                 value={qrRedirectUrl}
                 size={220}
                 level="H"
               />
+              </Box>
 
               <Typography variant="body2" style={{ marginTop: 12, wordBreak: 'break-all' }}>
                 QR Linki: {qrRedirectUrl}
@@ -207,6 +276,14 @@ const Dashboard = () => {
                 style={{ marginTop: 10, marginRight: 10 }}
               >
                 QR Linkini Kopyala
+              </Button>
+
+              <Button
+                variant="outlined"
+                onClick={downloadQrPng}
+                style={{ marginTop: 10 }}
+              >
+                QR PNG İndir
               </Button>
 
               <Typography variant="body2" style={{ marginTop: 14, wordBreak: 'break-all' }}>
